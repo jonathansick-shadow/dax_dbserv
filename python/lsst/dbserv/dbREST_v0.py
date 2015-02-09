@@ -96,7 +96,7 @@ def runDbQueryM(query, optTuple=None):
 
 @dbREST.route('/', methods=['GET'])
 def getRoot():
-    return '''LSST Database Service here. I currently support: /query.
+    return '''LSST Database Service v0 here. I currently support: /query.
 '''
 
 @dbREST.route('/query', methods=['GET'])

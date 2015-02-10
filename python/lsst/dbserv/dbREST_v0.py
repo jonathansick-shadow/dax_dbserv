@@ -96,8 +96,11 @@ def runDbQueryM(query, optTuple=None):
 
 @dbREST.route('/', methods=['GET'])
 def getRoot():
-    return '''LSST Database Service v0 here. I currently support: /query.
-'''
+    fmt = request.accept_mimetypes.best_match(['application/json', 'text/html'])
+    if fmt == 'text/html':
+        return ("LSST Database Service v0 here. I currently support: "
+                "<a href='query'>/query</a>.")
+    return "LSST Database Service v0 here. I currently support: /query."
 
 @dbREST.route('/query', methods=['GET'])
 def getQuery():
@@ -109,5 +112,4 @@ def getQuery():
         # a very first version
         return runDbQueryM(sql)
     else:
-        return '''Listing queries is not implemented.
-'''
+        return "Listing queries is not implemented."

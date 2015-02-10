@@ -13,5 +13,6 @@ sudo aptitude install python-flask
   curl http://localhost:5000/db
   curl http://localhost:5000/db/v0
   curl http://localhost:5000/db/v0/query
-  curl  http://localhost:5000/db/v0/query?sql=SELECT+COUNT\(*\)+FROM+jacek_1mRows.Source
-  curl  http://localhost:5000/db/v0/query?sql=SELECT+deepSourceId+FROM+jacek_1mRows.Source+limit+10
+  curl http://localhost:5000/db/v0/query?sql='show+databases+like+"%Stripe%"'
+  curl http://localhost:5000/db/v0/query?sql=SELECT+COUNT\(*\)+FROM+jacek_1mRows.Source
+  curl http://localhost:5000/db/v0/query?sql=SELECT+deepSourceId+FROM+jacek_1mRows.Source+limit+10

@@ -32,7 +32,7 @@ supported formats: json and html.
 #  * generate proper html header
 """
 
-from flask import Blueprint, Flask, request
+from flask import Blueprint, request
 import json
 import MySQLdb
 

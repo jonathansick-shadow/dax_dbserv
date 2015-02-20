@@ -21,8 +21,8 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 
 """
-This is a program for running RESTful LSST Database Server (only). 
-Use it for tests. It is really meant to run as part of the central 
+This is a program for running RESTful LSST Database Server (only).
+Use it for tests. It is really meant to run as part of the central
 Web Service, e.g., through webserv/bin/server.py
 
 @author  Jacek Becla, SLAC

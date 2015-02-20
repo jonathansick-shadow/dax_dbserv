@@ -30,6 +30,7 @@ Web Service, e.g., through webserv/bin/server.py
 
 from flask import Flask, request
 from lsst.dbserv import dbREST_v0
+import json
 
 app = Flask(__name__)
 
@@ -41,8 +42,12 @@ def getRoot():
 @app.route('/db')
 def getDb():
     '''Lists supported versions for /db.'''
-    return '''v0
+    fmt = request.accept_mimetypes.best_match(['application/json', 'text/html'])
+    s = '''v0
 '''
+    if fmt == "text/html":
+        return s
+    return json.dumps(s)
 
 app.register_blueprint(dbREST_v0.dbREST, url_prefix='/db/v0')
 

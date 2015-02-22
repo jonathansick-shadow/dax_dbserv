@@ -66,10 +66,14 @@ def runDbQueryM(query, optParams=None):
     retStr = ''
     if len(rows) > 0:
         if fmt == 'text/html':
-            retStr = "<br />".join(str(r[0]) for r in rows)
+            for row in rows:
+                for c in row:
+                    if isinstance(c, int) or isinstance(c, float) or isinstance(c, long):
+                        c = str(c)
+                    retStr += "%s " % c
+                retStr += "<br><br>"
         else: # default format is application/json
-            ret = " ".join(str(r[0]) for r in rows)
-            retStr = json.dumps(ret)
+            retStr = json.dumps(rows)
     return retStr
 
 @dbREST.route('/', methods=['GET'])

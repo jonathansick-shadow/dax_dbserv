@@ -89,7 +89,7 @@ def getQuery():
     '''If sql is not passed, it lists quries running for a given user.
        If sql is passed, it runs a given query.'''
     if 'sql' in request.args:
-        sql = request.args.get('sql')
+        sql = request.args.get('sql').encode('utf8')
         # TODO: query validation. See DM-2138
         return runDbQueryM(sql)
     else:

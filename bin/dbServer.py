@@ -52,4 +52,8 @@ def getDb():
 app.register_blueprint(dbREST_v0.dbREST, url_prefix='/db/v0')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    try:
+        app.run(debug=True)
+    except Exception, e:
+        print "Problem starting the server.", str(e)
+        sys.exit(1)

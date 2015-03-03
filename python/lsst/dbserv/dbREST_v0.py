@@ -68,8 +68,6 @@ def runDbQueryM(query, optParams=None):
         if fmt == 'text/html':
             for row in rows:
                 for c in row:
-                    if isinstance(c, int) or isinstance(c, float) or isinstance(c, long):
-                        c = str(c)
                     retStr += "%s " % c
                 retStr += "<br><br>"
         else: # default format is application/json

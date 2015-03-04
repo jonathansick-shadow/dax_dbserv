@@ -34,34 +34,18 @@ supported formats: json and html.
 
 from flask import Blueprint, request
 import json
-import MySQLdb
 
-from lsst.db.utils import readCredentialFile
-import lsst.log as log
+from lsst.db.db import Db
 
 
 dbREST = Blueprint('dbREST', __name__, template_folder='dbserv')
 
 # connect to the database
-creds = readCredentialFile("~/.lsst/dbAuth-dbServ.txt", log)
-try:
-    con = MySQLdb.connect(host=creds['host'],
-                          port=int(creds['port']),
-                          user=creds['user'],
-                          passwd=creds['passwd'])
+db = Db(read_default_file="~/.lsst/dbAuth-dbServ.txt")
 
-except MySQLdb.Error as err:
-    log.info("ERROR MySQL %s", err)
-    raise
-
-def runDbQuery1(query, optTuple=None):
-    '''Runs query that returns one row.'''
-    cursor = con.cursor()
-    if optTuple:
-        cursor.execute(query, optTuple)
-    else:
-        cursor.execute(query)
-    row = cursor.fetchone()
+def runDbQuery1(query, optParams=None):
+    '''Runs query that returns one row. Returns properly formatted result.'''
+    row = db.execCommand1(query, optParams)
     fmt = request.accept_mimetypes.best_match(['application/json', 'text/html'])
     retStr = ''
     if row:
@@ -72,26 +56,21 @@ def runDbQuery1(query, optTuple=None):
                 retStr += "%s:%s " % (cursor.description[x][0], row[x])
         if fmt == "application/json":
             retStr = json.dumps(retStr)
-    cursor.close()
     return retStr
 
-def runDbQueryM(query, optTuple=None):
-    '''Runs query that returns many rows.'''
-    cursor = con.cursor()
-    if optTuple:
-        cursor.execute(query, optTuple)
-    else:
-        cursor.execute(query)
-    rows = cursor.fetchall()
+def runDbQueryM(query, optParams=None):
+    '''Runs query that returns many rows. Returns properly formatted result.'''
+    rows = db.execCommandN(query, optParams)
     fmt = request.accept_mimetypes.best_match(['application/json', 'text/html'])
     retStr = ''
     if len(rows) > 0:
         if fmt == 'text/html':
-            retStr = "<br />".join(str(r[0]) for r in rows)
+            for row in rows:
+                for c in row:
+                    retStr += "%s " % c
+                retStr += "<br><br>"
         else: # default format is application/json
-            ret = " ".join(str(r[0]) for r in rows)
-            retStr = json.dumps(ret)
-    cursor.close()
+            retStr = json.dumps(rows)
     return retStr
 
 @dbREST.route('/', methods=['GET'])
@@ -107,9 +86,8 @@ def getQuery():
     '''If sql is not passed, it lists quries running for a given user.
        If sql is passed, it runs a given query.'''
     if 'sql' in request.args:
-        sql = request.args.get('sql')
-        # I'm sure we will want to do some validation here, etc, this is
-        # a very first version
+        sql = request.args.get('sql').encode('utf8')
+        # TODO: query validation. See DM-2138
         return runDbQueryM(sql)
     else:
         return "Listing queries is not implemented."

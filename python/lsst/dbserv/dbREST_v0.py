@@ -35,7 +35,6 @@ supported formats: json and html.
 from flask import Blueprint, request
 import json
 
-import lsst.log as log
 from lsst.db.db import Db
 
 

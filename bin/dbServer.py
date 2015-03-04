@@ -29,9 +29,11 @@ Web Service, e.g., through webserv/bin/server.py
 """
 
 from flask import Flask, request
-from lsst.dbserv import dbREST_v0
 import json
+import logging as log
 import sys
+
+from lsst.dbserv import dbREST_v0
 
 app = Flask(__name__)
 
@@ -53,6 +55,11 @@ def getDb():
 app.register_blueprint(dbREST_v0.dbREST, url_prefix='/db/v0')
 
 if __name__ == '__main__':
+    log.basicConfig(
+        format='%(asctime)s %(name)s %(levelname)s: %(message)s',
+        datefmt='%m/%d/%Y %I:%M:%S',
+        level=log.DEBUG)
+
     try:
         app.run(debug=True)
     except Exception, e:

@@ -35,32 +35,22 @@ supported formats: json and html.
 from flask import Blueprint, request
 import json
 
-from lsst.db.db import Db
+from lsst.db.dbPool import DbPool
 
 
 dbREST = Blueprint('dbREST', __name__, template_folder='dbserv')
 
-# connect to the database
-db = Db(read_default_file="~/.lsst/dbAuth-dbServ.txt")
+# Connect to the metaserv database. Note that the metaserv typically runs for
+# a long time, and the connection can timeout if there long period of inactivity.
+# Use the DbPool, which will keep the connection alive.
+dbPool = DbPool()
+dbPool.addConn("c1", read_default_file="~/.lsst/dbAuth-dbServ.txt")
 
-def runDbQuery1(query, optParams=None):
-    '''Runs query that returns one row. Returns properly formatted result.'''
-    row = db.execCommand1(query, optParams)
-    fmt = request.accept_mimetypes.best_match(['application/json', 'text/html'])
-    retStr = ''
-    if row:
-        for x in range(0, len(row)):
-            if fmt == "text/html":
-                retStr += "%s: %s<br />" % (cursor.description[x][0], row[x])
-            else: # default format is application/json
-                retStr += "%s:%s " % (cursor.description[x][0], row[x])
-        if fmt == "application/json":
-            retStr = json.dumps(retStr)
-    return retStr
 
 def runDbQueryM(query, optParams=None):
-    '''Runs query that returns many rows. Returns properly formatted result.'''
-    rows = db.execCommandN(query, optParams)
+    '''Runs query that returns many rows. Returns properly formatted result. It can
+    raise DbException or mysql exception.'''
+    rows = dbPool.getConn("c1").execCommandN(query, optParams)
     fmt = request.accept_mimetypes.best_match(['application/json', 'text/html'])
     retStr = ''
     if len(rows) > 0:

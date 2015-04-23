@@ -32,44 +32,27 @@ supported formats: json and html.
 #  * generate proper html header
 """
 
-from flask import Blueprint, request
+from flask import Blueprint, request, current_app, make_response
+from httplib import OK, INTERNAL_SERVER_ERROR
 import json
-
-from lsst.db.dbPool import DbPool
-
+import logging as log
+from lsst.webservcommon import renderJsonResponse
+from sqlalchemy.exc import SQLAlchemyError
 
 dbREST = Blueprint('dbREST', __name__, template_folder='dbserv')
 
-# Connect to the metaserv database. Note that the metaserv typically runs for
-# a long time, and the connection can timeout if there long period of inactivity.
-# Use the DbPool, which will keep the connection alive.
-dbPool = DbPool()
-dbPool.addConn("c1", read_default_file="~/.lsst/dbAuth-dbServ.txt")
-
-
-def runDbQueryM(query, optParams=None):
-    '''Runs query that returns many rows. Returns properly formatted result. It can
-    raise DbException or mysql exception.'''
-    rows = dbPool.getConn("c1").execCommandN(query, optParams)
-    fmt = request.accept_mimetypes.best_match(['application/json', 'text/html'])
-    retStr = ''
-    if len(rows) > 0:
-        if fmt == 'text/html':
-            for row in rows:
-                for c in row:
-                    retStr += "%s " % c
-                retStr += "<br><br>"
-        else: # default format is application/json
-            retStr = json.dumps(rows)
-    return retStr
 
 @dbREST.route('/', methods=['GET'])
 def getRoot():
     fmt = request.accept_mimetypes.best_match(['application/json', 'text/html'])
     if fmt == 'text/html':
-        return ("LSST Database Service v0 here. I currently support: "
-                "<a href='query'>/query</a>.")
+        return "LSST Database Service v0 here. I currently support: " \
+               "<a href='query'>/query</a>."
     return "LSST Database Service v0 here. I currently support: /query."
+
+_error = lambda exception, message: {"exception": exception, "message": message}
+_vector = lambda results: {"results": results}
+
 
 @dbREST.route('/query', methods=['GET'])
 def getQuery():
@@ -77,7 +60,24 @@ def getQuery():
        If sql is passed, it runs a given query.'''
     if 'sql' in request.args:
         sql = request.args.get('sql').encode('utf8')
-        # TODO: query validation. See DM-2138
-        return runDbQueryM(sql)
+        try:
+            engine = current_app.config["default_engine"]
+            results = [[i for i in result] for result in engine.execute(sql)]
+            status_code = OK
+            response = _vector(results)
+        except SQLAlchemyError as e:
+            log.debug("Encountered an error processing request: '%s'" % e.message)
+            response = _error(type(e).__name__, e.message)
+            status_code = INTERNAL_SERVER_ERROR
+        return _response(response, status_code)
     else:
         return "Listing queries is not implemented."
+
+
+def _response(response, status_code):
+    fmt = request.accept_mimetypes.best_match(['application/json', 'text/html'])
+    if fmt == 'text/html':
+        response = renderJsonResponse(response=response, status_code=status_code)
+    else:
+        response = json.dumps(response)
+    return make_response(response, status_code)

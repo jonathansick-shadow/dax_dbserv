@@ -1,5 +1,6 @@
 setupRequired(db)
-setupRequired(flask)
+setupRequired(anaconda)
+setupRequired(webservcommon)
 setupRequired(log)
 setupRequired(mysqlpython)
 setupRequired(sconsUtils)

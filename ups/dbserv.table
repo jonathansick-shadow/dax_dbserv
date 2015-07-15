@@ -1,6 +1,6 @@
 setupRequired(db)
 setupRequired(anaconda)
-setupRequired(webservcommon)
+setupRequired(dax_webservcommon)
 setupRequired(log)
 setupRequired(mysqlpython)
 setupRequired(sconsUtils)

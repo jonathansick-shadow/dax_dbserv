@@ -1,3 +1,3 @@
 # -*- python -*-
 from lsst.sconsUtils import scripts
-scripts.BasicSConstruct("dbserv")
+scripts.BasicSConstruct("dax_dbserv")

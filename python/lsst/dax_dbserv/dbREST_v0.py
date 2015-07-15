@@ -36,7 +36,7 @@ from flask import Blueprint, request, current_app, make_response
 from httplib import OK, INTERNAL_SERVER_ERROR
 import json
 import logging as log
-from lsst.webservcommon import renderJsonResponse
+from lsst.dax_webservcommon import renderJsonResponse
 from sqlalchemy.exc import SQLAlchemyError
 
 dbREST = Blueprint('dbREST', __name__, template_folder='dbserv')

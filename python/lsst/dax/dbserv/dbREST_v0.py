@@ -32,14 +32,19 @@ supported formats: json and html.
 #  * generate proper html header
 """
 
+from base64 import b64encode
+from datetime import date, datetime, time, timedelta
 from flask import Blueprint, request, current_app, make_response
 from httplib import OK, INTERNAL_SERVER_ERROR
 import json
 import logging as log
 from lsst.dax.webservcommon import renderJsonResponse
+import MySQLdb
+from MySQLdb.constants.FLAG import BINARY
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
-dbREST = Blueprint('dbREST', __name__, template_folder='dbserv')
+dbREST = Blueprint('dbREST', __name__, template_folder='dax_dbserv')
 
 
 @dbREST.route('/', methods=['GET'])
@@ -51,8 +56,7 @@ def getRoot():
     return "LSST Database Service v0 here. I currently support: /query."
 
 _error = lambda exception, message: {"exception": exception, "message": message}
-_vector = lambda results: {"results": results}
-
+_vector = lambda results, metadata: {"results": results, "metadata": metadata}
 
 @dbREST.route('/query', methods=['GET'])
 def getQuery():
@@ -60,11 +64,26 @@ def getQuery():
        If sql is passed, it runs a given query.'''
     if 'sql' in request.args:
         sql = request.args.get('sql').encode('utf8')
+        log.debug(sql)
         try:
             engine = current_app.config["default_engine"]
-            results = [[i for i in result] for result in engine.execute(sql)]
+            results = []
+            helpers = []
+            rows = engine.execute(text(sql))
+            curs = rows.cursor
+
+            for result in rows:
+                # If this is the first time, build column definitions (use raw values to help)
+                if not helpers:
+                    for desc, flags, val in zip(curs.description, curs.description_flags, result):
+                        helpers.append(ColumnHelper(desc, flags, val))
+
+                # Not streaming...
+                results.append([helper.checkValue(val) for helper, val in zip(helpers, result)])
+
             status_code = OK
-            response = _vector(results)
+            metadata = {"columnDefs": [{"name": cd.name, "type": cd.type} for cd in helpers]}
+            response = _vector(results, metadata)
         except SQLAlchemyError as e:
             log.debug("Encountered an error processing request: '%s'" % e.message)
             response = _error(type(e).__name__, e.message)
@@ -81,3 +100,60 @@ def _response(response, status_code):
     else:
         response = json.dumps(response)
     return make_response(response, status_code)
+
+
+class ColumnHelper:
+    def __init__(self, description, flags, value):
+        """
+        Helper class to define a column, get it's type for conversion, and convert types if needed.
+        This class works on a best-effort basis. It's not guaranteed to be 100% correct.
+        @param name: Column name
+        @param flags: Flags from MySQLdb.constants.FLAGS
+        @param value: An example value type to help with inferring how to convert
+        """
+        self.type = None
+        self.converter = None
+        self.name = description[0]
+
+        type_code = description[1]
+        scale = description[5]
+
+        if type_code in MySQLdb.NUMBER:
+            # Use python types first, fallback on float otherwise (e.g. NoneType)
+            if isinstance(value, int):
+                self.type = "int"
+            else:
+                # If there's a scale, use float, otherwise assume long
+                self.type = "float" if scale else "long"
+
+        # Check datetime and date
+        if type_code in MySQLdb.DATETIME:
+            self.type = "timestamp"
+            self.converter = lambda x: x.isoformat()
+        if type_code in MySQLdb.DATE:
+            self.type = "date"
+            self.converter = lambda x: x.isoformat()
+
+        # Check if this is binary data and potentially unsafe for JSON
+        if not self.type and flags & BINARY and type_code not in MySQLdb.TIME:
+            # This needs to be checked BEFORE the next type check
+            self.type = "binary"
+            self.converter = b64encode
+        elif isinstance(value, str):
+            self.type = "string"
+
+        if not self.type:
+            # Just return a string and make sure to convert it to string if we don't know about
+            # this type. This may include datetime.time
+            self.type = "string"
+            self.converter = str
+
+    def checkValue(self, value):
+        """
+        Check the value returned from the DBAPI.
+        @param value:
+        @return: The value itself, or a stringified version if it needs to be stringified.
+        """
+        if self.converter and value:
+            return self.converter(value)
+        return value

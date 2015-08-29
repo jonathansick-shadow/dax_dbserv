@@ -38,7 +38,7 @@ import ConfigParser
 import sqlalchemy
 from sqlalchemy.engine.url import URL
 
-from lsst.dbserv import dbREST_v0
+from lsst.dax.dbserv import dbREST_v0
 
 app = Flask(__name__)
 

@@ -1,0 +1,32 @@
+{%- macro xml_attribute(meta, name) -%}
+{%- set value = meta.get(name) -%}{%- if value %} {{ name }}="{{ value }}"{%- endif -%}
+{%- endmacro -%}
+
+<?xml version="1.0"?>
+<VOTABLE version="1.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns="http://www.ivoa.net/xml/VOTable/v1.3">
+  <RESOURCE>
+      {%- set table = result["table"] %}
+      <TABLE>
+          {% for element in table["metadata"]["elements"] -%}
+          {%- set is_array = element["datatype"] in mappings -%}
+          {%- set xtype = element.get("xtype") -%}
+          {%- set datatype = mappings.get(element["datatype"], element["datatype"]) -%}
+          <FIELD name="{{ element["name"] }}" datatype="{{ datatype }}"
+                  {%- if is_array %} arraysize="*"{%- endif -%}
+                  {%- if xtype %} xtype="{{ xtype }}"{%- endif -%}/>
+          {%- endfor %}
+          <DATA>
+              <TABLEDATA>
+              {%- for row in table["data"] %}
+                  <TR>{%- for column in row -%}
+                      {%- set field = table["metadata"]["elements"][loop.index0] -%}
+                      {%- set b64 = field["datatype"] == "binary" -%}
+                      <TD {%- if b64 %} encoding="base64"{%- endif -%}>{{ column }}</TD>{%- endfor -%}
+                  </TR>
+              {%- endfor -%}
+              </TABLEDATA>
+          </DATA>
+      </TABLE>
+  </RESOURCE>
+</VOTABLE>

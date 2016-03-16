@@ -31,49 +31,29 @@ Web Service, e.g., through webserv/bin/server.py
 from flask import Flask, request
 import json
 import logging as log
-import os
 import sys
-
-import ConfigParser
-import sqlalchemy
-from sqlalchemy.engine.url import URL
-
 from lsst.dax.dbserv import dbREST_v0
+from lsst.db.engineFactory import getEngineFromFile
 
 app = Flask(__name__)
 
-def initEngine():
-    config = ConfigParser.ConfigParser()
-    defaults_file = os.path.expanduser("~/.lsst/dbAuth-dbServ.txt")
-    config.readfp(open(defaults_file))
-    db_config = dict(config.items("mysql"))
-    # Translate user name
-    db_config["username"] = db_config["user"]
-    del db_config["user"]
-    # SQLAlchemy part
-    url = URL("mysql",**db_config)
-    return sqlalchemy.create_engine(url)
-
-engine = initEngine()
-
+# Configure Engine
+defaults_file = "~/.lsst/dbAuth-dbServ.ini"
+engine = getEngineFromFile(defaults_file)
 app.config["default_engine"] = engine
 
-@app.route('/')
-def getRoot():
-    return '''Test server for testing db. Try adding /db to URI.
-'''
 
-@app.route('/db')
-def getDb():
-    '''Lists supported versions for /db.'''
+@app.route('/')
+def application_root():
+    """In standalone mode, this handles requests above the tap service"""
     fmt = request.accept_mimetypes.best_match(['application/json', 'text/html'])
-    s = '''v0
-'''
+    s = "tap"
     if fmt == "text/html":
         return s
     return json.dumps(s)
 
-app.register_blueprint(dbREST_v0.dbREST, url_prefix='/db/v0')
+
+app.register_blueprint(dbREST_v0.dbREST, url_prefix='/tap')
 
 if __name__ == '__main__':
     log.basicConfig(

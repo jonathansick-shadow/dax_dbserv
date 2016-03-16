@@ -39,7 +39,7 @@ class TestMySqlQuery(unittest.TestCase):
         self.client = self.app.test_client()
         self.mock_engine = MagicMock()
         self.app.config['default_engine'] = self.mock_engine
-        self.app.register_blueprint(dbREST_v0.dbREST, url_prefix='/db/v0')
+        self.app.register_blueprint(dbREST_v0.dbREST, url_prefix='/tap')
 
         def side_effect(arg):
             arg = str(arg)   # This is actually a sqlalchemy.text object, convert to string
@@ -50,14 +50,23 @@ class TestMySqlQuery(unittest.TestCase):
     def test_basic_queries_json(self):
 
         for query, results in self.queries.items():
-            resp = self.client.get("/db/v0/query?sql=" + query)
-            self.assertEqual(json.loads(resp.data)["results"], results)
+            resp = self.client.post("/tap/sync?query=" + query)
+            self.assertEqual(json.loads(resp.data)["results"]["table"]["data"], results)
 
     def test_basic_queries_html(self):
 
         for query, results in self.queries.items():
-            resp = self.client.get("/db/v0/query?sql=" + query, headers={"accept": "text/html"})
+            resp = self.client.post("/tap/sync?query=" + query, headers={"accept": "text/html"})
+            print resp
             expected_row = "<td>" + "</td><td>".join([str(i) for i in results[0]]) + "</td>"
+            self.assertIn(expected_row, resp.data)
+
+    def test_basic_queries_votable(self):
+
+        for query, results in self.queries.items():
+            resp = self.client.post("/tap/sync?query=" + query, headers={"accept": "application/x-votable+xml"})
+            print resp.data
+            expected_row = "<TD>" + "</TD><TD>".join([str(i) for i in results[0]]) + "</TD>"
             self.assertIn(expected_row, resp.data)
 
 if __name__ == '__main__':

@@ -42,6 +42,7 @@ from lsst.dax.dbserv import dbREST_v0
 
 app = Flask(__name__)
 
+
 def initEngine():
     config = ConfigParser.ConfigParser()
     defaults_file = os.path.expanduser("~/.lsst/dbAuth-dbServ.txt")
@@ -51,17 +52,19 @@ def initEngine():
     db_config["username"] = db_config["user"]
     del db_config["user"]
     # SQLAlchemy part
-    url = URL("mysql",**db_config)
+    url = URL("mysql", **db_config)
     return sqlalchemy.create_engine(url)
 
 engine = initEngine()
 
 app.config["default_engine"] = engine
 
+
 @app.route('/')
 def getRoot():
     return '''Test server for testing db. Try adding /db to URI.
 '''
+
 
 @app.route('/db')
 def getDb():

@@ -58,6 +58,7 @@ def getRoot():
 _error = lambda exception, message: {"exception": exception, "message": message}
 _vector = lambda results, metadata: {"results": results, "metadata": metadata}
 
+
 @dbREST.route('/query', methods=['GET'])
 def getQuery():
     '''If sql is not passed, it lists quries running for a given user.
@@ -103,6 +104,7 @@ def _response(response, status_code):
 
 
 class ColumnHelper:
+
     def __init__(self, description, flags, value):
         """
         Helper class to define a column, get it's type for conversion, and convert types if needed.
